@@ -23,57 +23,9 @@ Before beginning the process, it's assumed that you have
  * A running NixOS system
  
 ### Setup
-For convenience, I've created a Nix expression that includes all dependencies.
+For convenience, I've created a Nix expression that includes all dependencies. Enter the nix-shell:
 
-    { nixpkgs ? import <nixpkgs> {} }:
-
-    let
-      inherit (nixpkgs) fetchurl pkgs stdenv;
-
-      pbkdf2Sha512 = stdenv.mkDerivation {
-        name = "pbkdf2-sha512";
-        version = "latest";
-        buildInputs = [pkgs.openssl];
-
-        src = fetchurl {
-            url = "https://raw.githubusercontent.com/NixOS/nixpkgs/master/nixos/modules/system/boot/pbkdf2-sha512.c";
-            sha256 = "0pn5hh78pyh4q6qjp3abipivkgd8l39sqg5jnawz66bdzicag4l7";
-        };
-
-        unpackPhase = ":";
-        buildPhase = "cc -O3 -I${pkgs.openssl.dev}/include -L${pkgs.openssl.out}/lib ${./pbkdf2-sha512.c} -o pbkdf2-sha512 -lcrypto";
-        installPhase = ''
-          mkdir -p $out/bin
-          install -m755 ${./pbkdf2-sha512} $out/bin/pbkdf2-sha512
-        '';
-      };
-    in
-      stdenv.mkDerivation {
-        name = "yubikey-luks-setup";
-        buildInputs = with pkgs; [
-          cryptsetup
-          openssl
-          pbkdf2Sha512
-          yubikey-personalization
-        ];
-
-        shellHook = ''
-          rbtohex() {
-            ( od -An -vtx1 | tr -d ' \n' )
-          }
-
-          hextorb() {
-            ( tr '[:lower:]' '[:upper:]' | sed -e 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI'| xargs printf )
-          }
-        '';
-
-
-        inherit (pkgs) cryptsetup openssl yubikey-personalization;
-      }
-
-Add the above snippet to a new file `yubikey-luks-setup.nix` and enter a nix shell
-
-    nix-shell yubikey-luks-setup.nix
+    nix-shell https://github.com/sgillespie/nixos-yubikey-luks/archive/master.tar.gz
 
 ## Setup - Manual
 If you don't want to use the nix expression, we can set up the same environment manually.
