@@ -111,7 +111,7 @@ Store the salt and iterations on an unencrypted partition. Here, we use the `ESP
 ### Step 6 - Open the LUKS device
 Open the LUKS device. As an example, we again use /dev/sdb5.
 
-    cryptsetup open --type=luks /dev/sdb5 encrypted
+    echo -n "$LUKS_KEY" | hextorb | cryptsetup open /dev/sdb5 encrypted --key-file=-
     
 We can now access the volume at `/dev/mapper/encrypted`. For example, to format it as ext4
 
