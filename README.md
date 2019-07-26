@@ -99,7 +99,7 @@ Create the LUKS device.
     
 As an example, we'll use the partition we created in Step 1: `/dev/sdb5`.
     
-    echo -n "LUKS_KEY" | hextorb | cryptsetup luksFormat --cipher="$CIPHER" \ 
+    echo -n "$LUKS_KEY" | hextorb | cryptsetup luksFormat --cipher="$CIPHER" \ 
       --key-size="$KEY_LENGTH" --hash="$HASH" --key-file=- /dev/sdb5
 
 ### Step 5 - Store Salt and Iterations
