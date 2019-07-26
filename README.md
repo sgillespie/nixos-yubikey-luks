@@ -138,7 +138,7 @@ Open up your hardware configuration at `/etc/nixos/hardware-configuration.nix` a
             slot = 2;
             twoFactor = true; # Set to false for 1FA
             gracePeriod = 30; # Time in seconds to wait for Yubikey to be inserted
-            keyLength = 16; # Set to $KEY_LENGTH/8
+            keyLength = 64; # Set to $KEY_LENGTH/8
             saltLength = 16; # Set to $SALT_LENGTH
             
             storage = {
