@@ -99,7 +99,7 @@ Create the LUKS device.
     
 As an example, we'll use the partition we created in Step 1: `/dev/sdb5`.
     
-    echo -n "LUKS_KEY" | hextorb | cryptsetup luksFormat --cipher="$CIPHER" \ 
+    echo -n "$LUKS_KEY" | hextorb | cryptsetup luksFormat --cipher="$CIPHER" \ 
       --key-size="$KEY_LENGTH" --hash="$HASH" --key-file=- /dev/sdb5
 
 ### Step 5 - Store Salt and Iterations
@@ -111,7 +111,7 @@ Store the salt and iterations on an unencrypted partition. Here, we use the `ESP
 ### Step 6 - Open the LUKS device
 Open the LUKS device. As an example, we again use /dev/sdb5.
 
-    cryptsetup open --type=luks /dev/sdb5 encrypted
+    echo -n "$LUKS_KEY" | hextorb | cryptsetup open /dev/sdb5 encrypted --key-file=-
     
 We can now access the volume at `/dev/mapper/encrypted`. For example, to format it as ext4
 
@@ -138,7 +138,7 @@ Open up your hardware configuration at `/etc/nixos/hardware-configuration.nix` a
             slot = 2;
             twoFactor = true; # Set to false for 1FA
             gracePeriod = 30; # Time in seconds to wait for Yubikey to be inserted
-            keyLength = 16; # Set to $KEY_LENGTH/8
+            keyLength = 64; # Set to $KEY_LENGTH/8
             saltLength = 16; # Set to $SALT_LENGTH
             
             storage = {
