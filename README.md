@@ -125,9 +125,6 @@ Open up your hardware configuration at `/etc/nixos/hardware-configuration.nix` a
       kernelModules = ["vfat" "nls_cp437" "nls_iso8859-1" "usbhid"];
       
       luks = {
-        # Update if necessary
-        cryptoModules = ["aes" "xts" "sha512"];
-        
         # Support for Yubikey PBA
         yubikeySupport = true;
         
