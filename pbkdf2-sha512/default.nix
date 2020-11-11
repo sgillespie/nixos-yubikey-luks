@@ -7,7 +7,7 @@ stdenv.mkDerivation rec {
     
   src = fetchurl {
     url = "https://raw.githubusercontent.com/NixOS/nixpkgs/master/nixos/modules/system/boot/pbkdf2-sha512.c";
-    sha256 = "0pn5hh78pyh4q6qjp3abipivkgd8l39sqg5jnawz66bdzicag4l7";
+    sha256 = "0ky414spzpndiifk7wca3q3l9gzs1ksn763dmy48xdn3q0i75s9r";
   };
 
   unpackPhase = ":";
