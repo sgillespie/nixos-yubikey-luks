@@ -10,6 +10,7 @@ let
   hextorb = pkgs.writeShellScriptBin
     "hextorb"
     ''( tr '[:lower:]' '[:upper:]' | sed -e 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI'| xargs printf )'';
+  yk-luks-open = pkgs.writeShellScriptBin "yk-luks-open" "${./yk-luks-open.sh} $@";
 in
   stdenv.mkDerivation {
     name = "yubikey-luks-setup";
@@ -21,5 +22,6 @@ in
       yubikey-personalization
       rbtohex
       hextorb
+      yk-luks-open
     ];
   }
