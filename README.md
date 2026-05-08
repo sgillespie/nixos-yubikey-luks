@@ -1,6 +1,11 @@
 # LUKS-Encrypted Filesystem with Yubikey PBA
 
-**Warning Warning Warning:** This approach to to pre-boot authentication is now deprecated in nixos-unstable and 26.05 onward, and will be completely removed in 26.11. However, these tools can be used to help migrate to the systemd-based PBA. See _Migration to systemd Stage 1_.
+> [!CAUTION]
+> This approach to pre-boot authentication is now deprecated in nixos-unstable and 26.05 onward, and will be completely removed in 26.11.
+
+These tools can be used to help migrate to the systemd-based PBA. See [Migration to systemd Stage 1](#migration-to-systemd-stage-1).
+
+---
 
 In this guide, we describe how to set up an encrypted filesystem with Yubikey pre-boot authentication (PBA) on NixOS. While the focus is on NixOS, the same techniques should be able to be used on any Linux system where Linux Unified Key Setup (LUKS) is available.
 
