@@ -9,6 +9,7 @@ Mount a LUKS encrypted filesystem with Yubikey on NixOS
 Options:
 
   -c, --storage=file       Path of the salt on and iterations on the unencrypted device
+  -e, --echo               Do not open the device, print the LUKS key to stdout
   -l, --key-length=number  Length of the LUKS slot key
   -p, --passphrase         Prompt for 2FA passphrase
   -s, --slot=number        Which slot on the YubiKey to challenge.
@@ -17,7 +18,7 @@ EOF
 }
 
 # Get CLI options
-options=$(getopt --options "c:l:ps:h" --long "key-length:,passphrase,slot:,storage:,help" -- "$@")
+options=$(getopt --options "c:el:ps:h" --long "echo,key-length:,passphrase,slot:,storage:,help" -- "$@")
 
 # Inspect CLI options
 eval set -- "$options"
@@ -26,6 +27,10 @@ while true; do
         -c|--storage)
             STORAGE=$2
             shift 2
+            ;;
+        -e|--echo)
+            ECHO=
+            shift
             ;;
         -l|--key-length)
             KEY_LENGTH=$2
@@ -84,7 +89,12 @@ CHALLENGE=$(echo -n $SALT | openssl dgst -binary -sha512 | rbtohex)
 RESPONSE=$(ykchalresp -2 -x $CHALLENGE 2>/dev/null)
 LUKS_KEY="$(echo "$USER_PASSPHRASE" | pbkdf2-sha512 $(($KEY_LENGTH / 8)) $ITERATIONS $RESPONSE | rbtohex)"
 
-# Open the LUKS device
-echo -n "$LUKS_KEY" \
-    | hextorb \
-    | cryptsetup open "$DEVICE" encrypted --key-file=-
+if [[ "${ECHO+DEFINED}" ]]; then
+  # Print the LUKS key
+  echo -n "$LUKS_KEY"
+else
+  # Open the LUKS device
+  echo -n "$LUKS_KEY" \
+      | hextorb \
+      | cryptsetup open "$DEVICE" encrypted --key-file=-
+fi

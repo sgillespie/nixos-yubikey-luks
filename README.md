@@ -1,4 +1,7 @@
 # LUKS-Encrypted Filesystem with Yubikey PBA
+
+**Warning Warning Warning:** This approach to to pre-boot authentication is now deprecated in nixos-unstable and 26.05 onward, and will be completely removed in 26.11. However, these tools can be used to help migrate to the systemd-based PBA. See _Migration to systemd Stage 1_.
+
 In this guide, we describe how to set up an encrypted filesystem with Yubikey pre-boot authentication (PBA) on NixOS. While the focus is on NixOS, the same techniques should be able to be used on any Linux system where Linux Unified Key Setup (LUKS) is available.
 
 This guide is inspired by and based on [Yubikey based Full Disk Encryption (FDE) on NixOS](https://nixos.wiki/wiki/Yubikey_based_Full_Disk_Encryption_(FDE)_on_NixOS).
@@ -149,6 +152,124 @@ Open up your hardware configuration at `/etc/nixos/hardware-configuration.nix` a
     };
    
 ### Step 8 - Reboot
+Rebuild your NixOS configuration and reboot
+
+    nixos-rebuild boot # Rebuild NixOS configs and set as the default for next boot
+    reboot
+
+## Migration to systemd Stage 1
+
+The approach here is now deprecated, but this procedure can still be used to migrate to
+systemd. 
+
+### Setup
+
+Recalculate the LUKS key. This can be done with the included script. If it's configured for 2FA
+
+    nix-shell https://github.com/sgillespie/nixos-yubikey-luks/archive/master.tar.gz
+    yk-luks-open \
+        --storage=/boot/crypt-storage/default \
+        --key-length=512 \
+        --slot=2 \
+        --passphrase \
+        --echo \
+        /dev/sdb5 | hextorb > /run/user/$UID/luks.key
+
+Otherwise
+
+    nix-shell https://github.com/sgillespie/nixos-yubikey-luks/archive/master.tar.gz
+    yk-luks-open \
+        --storage=/boot/crypt-storage/default \
+        --key-length=512 \
+        --slot=2 \
+        --echo \
+        /dev/sdb5 | hextorb > /run/user/$UID/luks.key
+
+### Setup - Manual
+
+Recalculate the LUKS key. This is roughly the same procedure as above.
+
+Look up salt and iterations
+
+    SALT=$(awk 'NR == 1 { print }' < /boot/crypt-storage/default)
+    ITERATIONS=$(awk 'NR == 2 { print }' < /boot/crypt-storage/default)
+
+Enter the 2FA passphrase, if configured for 2FA
+
+    read -s USER_PASSPHRASE
+
+Calculate the challenge and response
+
+    CHALLENGE="$(echo -n $SALT | openssl dgst -binary -sha512 | rbtohex)"
+    RESPONSE=$(ykchalresp -2 -x $CHALLENGE 2>/dev/null)
+
+Calculate the LUKS slot key from the desired factors
+
+    KEY_LENGTH=512
+
+If configured for 2FA
+
+    LUKS_KEY="$(echo -n $USER_PASSPHRASE | pbkdf2-sha512 $(($KEY_LENGTH / 8)) $ITERATIONS $RESPONSE | rbtohex)"
+
+Otherwise
+
+    LUKS_KEY="$(echo | pbkdf2-sha512 $(($KEY_LENGTH / 8)) $ITERATIONS $RESPONSE | rbtohex)"
+
+Write it to a non-persistent file:
+
+    echo $LUKS_KEY | hextorb > /run/user/$UID/luks.key
+
+### Procedure
+
+### Step 1 - Re-enroll the Yubikey to the Volume
+
+Enroll your Yubikey
+
+    systemd-cryptenroll --unlock-key-file=/run/user/$UID/luks.key --fido2-device=auto /dev/sda5
+
+Verify you can unlock it
+
+    systemd-cryptsetup attach /dev/sda5 - fido2-device=auto
+
+Since the device is likely already unlocked, this may fail with
+
+    Cannot use device /dev/sda5 which is in use (already mapped or mounted).
+
+If the enrollment was really unsuccessful, the error would probably look like
+
+    Failed to activate with specified passphrase. (Passphrase incorrect?)
+
+### Step 2 - Update the NixOS Configuration
+
+The configuration above now becomes:
+
+  boot.initrd = {
+    luks = {
+      devices."encrypted" = {
+        device = "/dev/sda5"; # Be sure to update this to the correct volume
+        crypttabExtraOpts = [ "fido2-device=auto" ];
+      };
+    };
+
+    systemd.enable = true;
+  };
+
+NixOS recommends removing the old LUKS slot from the old implementation, as it could
+interfere with a fallback passphrase if the hardware key fails. However, keeping it around
+should allow you to boot from the old configuration if something goes wrong.
+
+### Step 3 - Reboot
+
+Before rebooting, be sure to double check everything. I recommend reading at least these
+first:
+
+ * https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html
+ * https://wiki.archlinux.org/title/Systemd-cryptenroll
+ * https://wiki.archlinux.org/title/Dm-crypt/System_configuration
+ * https://www.freedesktop.org/software/systemd/man/systemd-cryptsetup.html
+ * https://www.freedesktop.org/software/systemd/man/systemd-cryptenroll.html
+ * https://www.freedesktop.org/software/systemd/man/crypttab.html
+
 Rebuild your NixOS configuration and reboot
 
     nixos-rebuild boot # Rebuild NixOS configs and set as the default for next boot
